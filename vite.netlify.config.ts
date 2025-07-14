@@ -42,7 +42,7 @@ export default defineConfig({
   ],
   publicDir: resolve('resources'),
   build: {
-    outDir: 'dist',
+    outDir: resolve('dist'),
     assetsDir: 'assets',
     sourcemap: false,
     minify: 'terser',
