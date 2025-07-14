@@ -1,6 +1,6 @@
 [build]
   # 构建命令
-  command = "npm run build:web"
+  command = "npm run build:web && cd netlify/functions && npm install"
   # 发布目录
   publish = "dist"
   # 函数目录

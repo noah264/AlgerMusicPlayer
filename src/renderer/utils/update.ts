@@ -131,7 +131,10 @@ export const getLatestReleaseInfo = async (): Promise<GithubReleaseInfo | null> 
     const headers = {};
     // 构建 API URL 列表
     const apiUrls = [
-      // 原始地址
+      // 使用Netlify函数代理
+      '/.netlify/functions/github-proxy?path=/repos/algerkong/AlgerMusicPlayer/releases/latest',
+      
+      // 原始地址（备用）
       'https://api.github.com/repos/algerkong/AlgerMusicPlayer/releases/latest',
 
       // 使用代理节点
@@ -163,6 +166,12 @@ export const getLatestReleaseInfo = async (): Promise<GithubReleaseInfo | null> 
             assets: []
           } as unknown as GithubReleaseInfo;
         }
+        
+        // 如果是Netlify函数代理，直接返回数据
+        if (url.includes('/.netlify/functions/github-proxy')) {
+          return response.data;
+        }
+        
         return response.data;
       } catch (err) {
         console.warn(`尝试访问 ${url} 失败:`, err);
