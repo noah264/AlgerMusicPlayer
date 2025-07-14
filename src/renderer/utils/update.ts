@@ -131,14 +131,17 @@ export const getLatestReleaseInfo = async (): Promise<GithubReleaseInfo | null> 
     const headers = {};
     // 构建 API URL 列表
     const apiUrls = [
-      // 使用Netlify函数代理
-      '/.netlify/functions/github-proxy?path=/repos/algerkong/AlgerMusicPlayer/releases/latest',
+      // 使用备用API（避免跨域问题）
+      'https://music.alger.fun/package.json',
+      
+      // 使用GitHub Raw API（通常不会有跨域问题）
+      'https://raw.githubusercontent.com/algerkong/AlgerMusicPlayer/main/package.json',
       
       // 原始地址（备用）
       'https://api.github.com/repos/algerkong/AlgerMusicPlayer/releases/latest',
-
-      // 使用代理节点
-      'https://music.alger.fun/package.json',
+      
+      // 使用Netlify函数代理（如果部署成功）
+      '/.netlify/functions/github-proxy?path=/repos/algerkong/AlgerMusicPlayer/releases/latest',
     ];
 
     if (token) {
@@ -147,31 +150,47 @@ export const getLatestReleaseInfo = async (): Promise<GithubReleaseInfo | null> 
 
     for (const url of apiUrls) {
       try {
+        console.log(`尝试访问API: ${url}`);
         const response = await axios.get(url, {
           headers,
           timeout: REQUEST_TIMEOUT
         });
+        console.log(`API ${url} 访问成功，状态码:`, response.status);
 
         if (url.includes('package.json')) {
+          console.log('检测到package.json API，处理版本信息');
           // 如果是 package.json，获取对应的 CHANGELOG
-          const changelogUrl = url.replace('package.json', 'CHANGELOG.md');
-          const changelogResponse = await axios.get(changelogUrl, {
-            timeout: REQUEST_TIMEOUT
-          });
+          try {
+            const changelogUrl = url.replace('package.json', 'CHANGELOG.md');
+            const changelogResponse = await axios.get(changelogUrl, {
+              timeout: REQUEST_TIMEOUT
+            });
 
-          return {
-            tag_name: response.data.version,
-            body: changelogResponse.data,
-            html_url: 'https://github.com/algerkong/AlgerMusicPlayer/releases/latest',
-            assets: []
-          } as unknown as GithubReleaseInfo;
+            return {
+              tag_name: `v${response.data.version}`,
+              body: changelogResponse.data,
+              html_url: 'https://github.com/algerkong/AlgerMusicPlayer/releases/latest',
+              assets: []
+            } as unknown as GithubReleaseInfo;
+          } catch (changelogError) {
+            console.log('获取CHANGELOG失败，使用默认信息');
+            // 如果获取CHANGELOG失败，只返回版本信息
+            return {
+              tag_name: `v${response.data.version}`,
+              body: `版本 ${response.data.version} 已发布`,
+              html_url: 'https://github.com/algerkong/AlgerMusicPlayer/releases/latest',
+              assets: []
+            } as unknown as GithubReleaseInfo;
+          }
         }
         
         // 如果是Netlify函数代理，直接返回数据
         if (url.includes('/.netlify/functions/github-proxy')) {
+          console.log('检测到Netlify函数代理，直接返回数据');
           return response.data;
         }
         
+        console.log('使用标准GitHub API响应');
         return response.data;
       } catch (err) {
         console.warn(`尝试访问 ${url} 失败:`, err);
@@ -220,19 +239,27 @@ export const checkUpdate = async (
   currentVersion: string = config.version
 ): Promise<UpdateResult | null> => {
   try {
+    console.log('开始检查更新，当前版本:', currentVersion);
     const releaseInfo = await getLatestReleaseInfo();
-    console.log('releaseInfo', releaseInfo);
+    console.log('获取到的releaseInfo:', releaseInfo);
+    
     if (!releaseInfo) {
+      console.log('未获取到releaseInfo，返回null');
       return null;
     }
 
     const latestVersion = releaseInfo.tag_name.replace('v', '');
+    console.log('处理后的最新版本:', latestVersion);
+    console.log('当前版本:', currentVersion);
+    
     // 比较版本号，只有当新版本大于当前版本时才返回更新信息
-    if (compareVersions(latestVersion, currentVersion) <= 0) {
+    const comparison = compareVersions(latestVersion, currentVersion);
+    console.log('版本比较结果:', comparison);
+    
+    if (comparison <= 0) {
+      console.log('当前版本已是最新或更新，返回null');
       return null;
     }
-    console.log('latestVersion', latestVersion);
-    console.log('currentVersion', currentVersion);
 
     return {
       hasUpdate: true,

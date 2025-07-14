@@ -1,6 +1,13 @@
 const axios = require('axios');
 
 exports.handler = async function(event, context) {
+  console.log('GitHub代理函数被调用:', {
+    method: event.httpMethod,
+    path: event.path,
+    query: event.queryStringParameters,
+    headers: event.headers
+  });
+
   // 设置CORS头
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -10,6 +17,7 @@ exports.handler = async function(event, context) {
 
   // 处理预检请求
   if (event.httpMethod === 'OPTIONS') {
+    console.log('处理OPTIONS预检请求');
     return {
       statusCode: 200,
       headers,
@@ -21,7 +29,10 @@ exports.handler = async function(event, context) {
     // 从查询参数获取路径
     const { path } = event.queryStringParameters || {};
     
+    console.log('请求路径:', path);
+    
     if (!path) {
+      console.log('缺少path参数');
       return {
         statusCode: 400,
         headers,
@@ -33,6 +44,7 @@ exports.handler = async function(event, context) {
 
     // 构建GitHub API URL
     const githubApiUrl = `https://api.github.com${path}`;
+    console.log('GitHub API URL:', githubApiUrl);
     
     // 构建请求配置
     const config = {
@@ -52,7 +64,9 @@ exports.handler = async function(event, context) {
     }
 
     // 发送请求到GitHub API
+    console.log('发送请求到GitHub API...');
     const response = await axios(config);
+    console.log('GitHub API响应状态:', response.status);
 
     return {
       statusCode: response.status,
