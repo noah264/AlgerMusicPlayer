@@ -19,7 +19,14 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    viteCompression(),
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz'
+    }),
+    viteCompression({
+      algorithm: 'brotliCompress',
+      ext: '.br'
+    }),
     VueDevTools(),
     AutoImport({
       imports: [
@@ -35,11 +42,30 @@ export default defineConfig({
   ],
   publicDir: resolve('resources'),
   build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'terser',
     target: 'esnext',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'],
+          ui: ['naive-ui'],
+          utils: ['axios', 'lodash']
+        }
+      }
+    },
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
   },
   server: {
     host: '0.0.0.0',
     proxy: {
     }
   }
-});
+}); 
