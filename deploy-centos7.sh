@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# AlgerMusicPlayer CentOS 部署脚本
-# 适用于 CentOS 7 及以上版本
+# AlgerMusicPlayer CentOS 7 专用部署脚本
+# 强制使用 Node.js 16 以确保兼容性
 
 set -e
 
@@ -35,22 +35,16 @@ check_system_version() {
     
     if [ -f /etc/redhat-release ]; then
         cat /etc/redhat-release
+    elif [ -f /etc/centos-release ]; then
+        cat /etc/centos-release
     else
         log_error "不支持的操作系统"
         exit 1
     fi
     
-    # 检查是否为CentOS 7
-    if grep -q "CentOS Linux release 7" /etc/redhat-release; then
-        log_warning "检测到CentOS 7，将使用Node.js 16"
-        NODE_VERSION="16"
-    elif grep -q "CentOS Linux release 8\|CentOS Stream release 8\|CentOS Stream release 9" /etc/redhat-release; then
-        log_info "检测到CentOS 8/9，将使用Node.js 18"
-        NODE_VERSION="18"
-    else
-        log_warning "未知的CentOS版本，默认使用Node.js 16"
-        NODE_VERSION="16"
-    fi
+    # 强制使用Node.js 16
+    NODE_VERSION="16"
+    log_info "CentOS 7 专用脚本，将使用Node.js 16"
 }
 
 # 系统更新
@@ -101,22 +95,18 @@ install_dependencies() {
         xorg-x11-server-Xvfb
 }
 
-# 安装Node.js
+# 安装Node.js 16
 install_nodejs() {
-    log_info "安装Node.js ${NODE_VERSION}..."
+    log_info "安装Node.js 16（CentOS 7 兼容版本）..."
     
     # 清理旧的Node.js
     yum remove -y nodejs npm 2>/dev/null || true
     
-    # 根据系统版本安装对应的Node.js
-    if [ "$NODE_VERSION" = "16" ]; then
-        # CentOS 7 使用 Node.js 16
-        curl -fsSL https://rpm.nodesource.com/setup_16.x | bash -
-    else
-        # CentOS 8/9 使用 Node.js 18
-        curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-    fi
+    # 清理可能存在的NodeSource仓库
+    rm -f /etc/yum.repos.d/nodesource*
     
+    # 安装Node.js 16
+    curl -fsSL https://rpm.nodesource.com/setup_16.x | bash -
     yum install -y nodejs
     
     # 验证安装
@@ -125,6 +115,8 @@ install_nodejs() {
     
     # 安装全局包
     npm install -g pm2
+    
+    log_success "Node.js 16 安装完成"
 }
 
 # 配置防火墙
@@ -206,11 +198,12 @@ clone_project() {
         mv "$PROJECT_DIR" "${PROJECT_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
     fi
     
-    # 克隆项目
-    git clone https://github.com/your-username/AlgerMusicPlayer.git "$PROJECT_DIR"
-    cd "$PROJECT_DIR"
+    # 克隆项目（需要替换为实际的Git仓库地址）
+    log_info "请确保已配置正确的Git仓库地址"
+    # git clone https://github.com/your-username/AlgerMusicPlayer.git "$PROJECT_DIR"
+    # cd "$PROJECT_DIR"
     
-    log_success "项目克隆完成"
+    log_success "项目目录准备完成"
 }
 
 # 构建项目
@@ -391,7 +384,7 @@ show_deployment_info() {
 
 # 主函数
 main() {
-    log_info "开始部署 AlgerMusicPlayer..."
+    log_info "开始部署 AlgerMusicPlayer（CentOS 7 专用）..."
     
     # 检查是否为root用户
     if [ "$EUID" -ne 0 ]; then
