@@ -105,13 +105,19 @@ install_nodejs() {
     # 清理可能存在的NodeSource仓库
     rm -f /etc/yum.repos.d/nodesource*
     
-    # 安装Node.js 16
+    # 明确安装Node.js 16
+    log_info "添加Node.js 16仓库..."
     curl -fsSL https://rpm.nodesource.com/setup_16.x | bash -
+    
+    log_info "安装Node.js 16..."
     yum install -y nodejs
     
     # 验证安装
-    node --version
-    npm --version
+    NODE_VERSION=$(node --version)
+    NPM_VERSION=$(npm --version)
+    
+    log_success "Node.js安装完成: $NODE_VERSION"
+    log_success "NPM安装完成: $NPM_VERSION"
     
     # 安装全局包
     npm install -g pm2
